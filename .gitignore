@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pkl
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
+.venv/
+ENV/
+.Python
+
+# Django
+*.log
+*.pot
+*.pyc
+db.sqlite3
+*.sqlite3
+media/
+staticfiles/
+*.mo
+local_settings.py
+secrets.py
+
+# Django Migrations (Optional: keep only initial migrations in VCS)
+**/migrations/*
+!**/migrations/__init__.py
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Jupyter Notebooks (if using)
+.ipynb_checkpoints
+
+# VSCode
+.vscode/
+
+# PyCharm
+.idea/
+
+# Environment variables
+.env
+.env.*
+
+# Node/Frontend (if using JS tools or Tailwind)
+node_modules/
+*.lock
+
+# Model/AI Stuff
+*.pt
+*.h5
+*.tflite
+*.onnx
+tmp/
+tmp/**
+
+# AGNO-related
+/tmp/
+tmp/data.db
+chatbot_knowladge.db
+
+# Log & Cache
+*.log
+.cache/
+*.bak
+FAQ.csv

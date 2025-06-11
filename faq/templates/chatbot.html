@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Futuristic Chatbot</title>
+    <style>
+      .chat-input {
+        display: flex;
+        align-items: flex-end;
+        border-top: 1px solid #333;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.418);
+      }
+
+      .chat-input textarea {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        background: #1c1c1c;
+        color: #e0e0e0;
+        border-radius: 8px;
+        outline: none;
+        resize: none;
+        font-family: inherit;
+        font-size: 14px;
+        min-height: 44px;
+        max-height: 200px;
+        line-height: 1.4;
+        overflow-y: auto;
+        transition: height 0.2s ease;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #2d2c2c;
+        color: #e0e0e0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+
+      .chat-container {
+        width: 100%;
+        max-width: 800px;
+        height: 90vh;
+        display: flex;
+        flex-direction: column;
+        background: #1c1c1c;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 0.5px solid #f7f7f73b;
+      }
+
+      .chat-messages {
+        flex: 1;
+        padding: 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: #2d2c2c;
+      }
+
+      .message {
+        max-width: 80%;
+        padding: 12px 16px;
+        border-radius: 16px;
+        font-size: 14px;
+        line-height: 1.5;
+        animation: fadeIn 0.3s ease;
+        white-space: pre-line;
+      }
+
+      .user {
+        align-self: flex-end;
+        background: linear-gradient(135deg, orange, #0088ff);
+        color: #000;
+      }
+
+      .bot {
+        align-self: flex-start;
+        background: #2a2a2a;
+        border: 1px solid #333;
+      }
+
+      .chat-input {
+        display: flex;
+        border-top: 1px solid #333;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.418);
+      }
+
+      .chat-input input {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        background: #1c1c1c;
+        color: #e0e0e0;
+        border-radius: 8px;
+        outline: none;
+      }
+
+      .chat-input button {
+        margin-left: 8px;
+        padding: 12px 20px;
+        border: none;
+        background: orange;
+        color: #000;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      .chat-input button:hover {
+        background: #00d4e0;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .chat-messages::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .chat-messages::-webkit-scrollbar-thumb {
+        background: #444;
+        border-radius: 4px;
+      }
+
+      .header {
+        position: fixed;
+        top: 0;
+        width: 50%;
+        text-align: center;
+        padding: 16px;
+        background: transparent;
+        color: white;
+        font-size: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h4>AI Chatbot</h4>
+    </div>
+
+    <div class="chat-container">
+      <div id="chat-messages" class="chat-messages"></div>
+      <form id="chat-form" class="chat-input">
+        <textarea
+          id="user-input"
+          placeholder="How can I help you today?"
+          autocomplete="off"
+        ></textarea>
+        <button type="submit">Send</button>
+      </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+      $(document).ready(function () {
+        function autoResizeTextarea(el) {
+          el.style.height = "auto"; // Reset height
+          el.style.height = el.scrollHeight + "px"; // Set to scroll height
+        }
+
+        const textarea = document.getElementById("user-input");
+        textarea.addEventListener("input", function () {
+          autoResizeTextarea(this);
+        });
+
+        const $form = $("#chat-form");
+        const $input = $("#user-input");
+
+        $form.on("submit", function (e) {
+          e.preventDefault();
+          sendMessage();
+        });
+
+        $input.on("keydown", function (e) {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+          }
+        });
+
+        function sendMessage() {
+          const userText = $input.val().trim();
+          $input[0].style.height = "auto";
+
+          if (!userText) return;
+
+          addMessage("user", userText);
+          $input.val("");
+          addMessage("bot", "Thinking...");
+
+          $input.prop("disabled", true);
+          $form.find('button[type="submit"]').prop("disabled", true);
+
+          $.ajax({
+            url: "http://127.0.0.1:8000/chatbot-api/",
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ query: userText }),
+            success: function (data) {
+              const botMessages = $(".bot");
+              const message =
+                data.status && data.response
+                  ? data.response
+                  : data.error || "Sorry, I couldn't find an answer.";
+              botMessages.last().html(formatMessage(message));
+              $input.prop("disabled", false);
+              $form.find('button[type="submit"]').prop("disabled", false);
+            },
+            error: function (xhr) {
+              const botMessages = $(".bot");
+              const message =
+                (xhr.responseJSON && xhr.responseJSON.error) ||
+                "Sorry, something went wrong.";
+              botMessages.last().html(formatMessage(message));
+              $input.prop("disabled", false);
+              $form.find('button[type="submit"]').prop("disabled", false);
+            },
+          });
+        }
+
+        function addMessage(type, text) {
+          const message = $(
+            '<div style = "background: linear-gradient(135deg, orange, #0088ff); color:black;"></div>'
+          )
+            .addClass("message")
+            .addClass(type)
+            .html(formatMessage(text));
+          $("#chat-messages").append(message);
+          $("#chat-messages").scrollTop($("#chat-messages")[0].scrollHeight);
+        }
+
+        function formatMessage(text) {
+          return text
+            .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+            .replace(/\*(.*?)\*/g, "<em>$1</em>")
+            .replace(/`(.*?)`/g, "<code>$1</code>")
+            .replace(/\n/g, "<br/>")
+            .replace(/\n\n/g, "</p><p>")
+            .replace(/^(.*)$/, "<p>$1</p>")
+            .replace(/<p><\/p>/g, "")
+            .replace(/^\* (.*)$/gim, "<li>$1</li>")
+            .replace(/(<li>.*<\/li>)/gims, "<ul>$1</ul>")
+            .replace(/^\d+\. (.*)$/gim, "<li>$1</li>")
+            .replace(/(<ul>.*<\/ul>)/gims, (m) =>
+              m.replace(/<li>/, "<ol><li>").replace(/<\/li>$/, "</li></ol>")
+            );
+        }
+      });
+    </script>
+  </body>
+</html>
