@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Perplexity AI Clone</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      ::-moz-selection {
+        /* Code for Firefox */
+        color: #0a9bc9;
+        background: #172426;
+      }
+
+      ::selection {
+        color: #2abfec;
+        background: #172426;
+      }
+      body {
+        font-family: "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto",
+          sans-serif;
+        background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+        color: white;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+      }
+
+      .container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        max-width: 100%;
+      }
+
+      .logo {
+        font-size: 2.5rem;
+        font-weight: 300;
+        letter-spacing: -0.02em;
+        margin-bottom: 3rem;
+        text-align: center;
+        background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .search-container {
+        width: 100%;
+        max-width: 600px;
+        position: relative;
+        margin-bottom: 2rem;
+      }
+
+      .search-box {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        font-size: 1rem;
+        color: white;
+        outline: none;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        min-height: 56px;
+      }
+
+      .search-box::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .search-box:focus {
+        border-color: rgba(0, 186, 188, 0.6);
+        box-shadow: 0 0 0 3px rgba(0, 186, 188, 0.1);
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .input-controls {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .control-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .control-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: white;
+      }
+
+      .send-btn {
+        background: linear-gradient(135deg, #0a9bc9 0%, #0a9bc9 100%);
+        color: white;
+      }
+
+      .send-btn:hover {
+        background: linear-gradient(135deg, #0a9bc9 0%, #0a9bc9 100%);
+        transform: scale(1.05);
+      }
+
+      .suggestions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+        width: 100%;
+        max-width: 800px;
+        margin-top: 2rem;
+      }
+
+      .suggestion-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 1.25rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+      }
+
+      .suggestion-card:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(0, 186, 188, 0.3);
+        transform: translateY(-2px);
+      }
+
+      .suggestion-title {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: white;
+      }
+
+      .suggestion-desc {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.875rem;
+        line-height: 1.4;
+      }
+
+      .upgrade-btn {
+        background: linear-gradient(135deg, #00babc 0%, #00a3a5 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        margin-top: 0.5rem;
+        cursor: pointer;
+        font-size: 0.8rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        width: 100%;
+      }
+
+      .upgrade-btn:hover {
+        background: linear-gradient(135deg, #00a3a5 0%, #008f91 100%);
+      }
+
+      .dismiss-btn {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        font-size: 0.8rem;
+        margin-top: 0.25rem;
+        padding: 0.25rem 0;
+      }
+
+      .dismiss-btn:hover {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .loader {
+        width: 29px;
+        aspect-ratio: 1;
+        border-radius: 62%;
+        border: 4px solid;
+        border-color: #000 #0000;
+        animation: l1 1s infinite;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .container {
+          padding: 1rem;
+        }
+
+        .logo {
+          font-size: 2rem;
+          margin-bottom: 2rem;
+        }
+
+        .search-container {
+          max-width: 100%;
+        }
+
+        .suggestions {
+          grid-template-columns: 1fr;
+          gap: 0.75rem;
+        }
+
+        .suggestion-card {
+          padding: 1rem;
+        }
+
+        .control-btn {
+          width: 28px;
+          height: 28px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .logo {
+          font-size: 1.75rem;
+        }
+
+        .search-box {
+          padding: 0.875rem 1rem;
+          font-size: 0.9rem;
+        }
+
+        .input-controls {
+          right: 8px;
+        }
+      }
+      /* loader css */
+      @keyframes l1 {
+        to {
+          transform: rotate(0.5turn);
+        }
+      }
+      /* Animations */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .container > * {
+        animation: fadeInUp 0.6s ease forwards;
+      }
+
+      .suggestions {
+        animation-delay: 0.2s;
+      }
+
+      /* Focus states for accessibility */
+      .control-btn:focus,
+      .suggestion-card:focus {
+        outline: 2px solid rgba(0, 186, 188, 0.5);
+        outline-offset: 2px;
+      }
+
+      #editableDiv {
+        width: 100%;
+        max-width: 750px;
+        min-height: 40px;
+        max-height: 500px;
+        /* padding: 10px; */
+        font-size: 16px;
+        border: none;
+        border-radius: 5px;
+        overflow-y: auto;
+        outline: none;
+        white-space: pre-wrap;
+        word-break: break-word;
+        resize: none;
+        line-height: 1.5;
+        word-wrap: break-word;
+      }
+
+      .send-btn {
+        background: linear-gradient(135deg, #00babc 0%, #00a3a5 100%);
+        color: white;
+      }
+      button {
+        height: 40px;
+      }
+
+      /* .user-input {
+            min-height: 40px;
+            max-height: 200px;
+            overflow-y: auto;
+            word-wrap: break-word;
+            word-break: break-word;
+            white-space: pre-wrap;
+            outline: none;
+            resize: none;
+            width: 100%;
+            box-sizing: border-box;
+        } */
+
+      .user-input:empty:before {
+        content: attr(placeholder);
+        color: #9ca3af;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="logo">AI Chatbot</h1>
+
+      <div class="chat-container">
+        <!-- form here -->
+        <div id="chat-messages" class="chat-messages"></div>
+        <form id="chat-form" class="chat-input">
+          <div
+            style="border: none"
+            class="bg-background w-full outline-none focus:outline-none focus:ring-borderMain font-sans flex items-center text-textMain placeholder-textOff border focus:ring-1 rounded-2xl dark:bg-offsetDark dark:text-textMainDark dark:placeholder-textOffDark selection:bg-superDuper selection:text-textMain duration-75 transition-all border-borderMain dark:border-textMain/10 shadow-sm dark:shadow-md shadow-textMain/5 dark:shadow-black/10 px-0 pt-3 pb-3 gap-y-md grid items-center"
+          >
+            <div
+              class="px-md grid-rows-1fr-auto grid grid-cols-3"
+              style="
+                padding: 25px;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                border-radius: 15px;
+              "
+            >
+              <div
+                class="col-start-1 col-end-4 pb-sm overflow-hidden relative flex h-full w-full"
+              >
+                <div
+                  id="editableDiv"
+                  class="user-input"
+                  contenteditable="true"
+                  placeholder="Ask anything...."
+                ></div>
+              </div>
+              <div
+                class="bg-background dark:bg-offsetDark flex items-center justify-self-end rounded-full col-start-3 row-start-2 -mr-1"
+              >
+                <div style="opacity: 1">
+                  <span
+                    ><button
+                      aria-label="Choose a model"
+                      type="button"
+                      class="focus-visible:bg-offsetPlus dark:focus-visible:bg-offsetPlusDark hover:bg-offsetPlus text-textOff dark:text-textOffDark hover:text-textMain dark:hover:bg-offsetPlusDark dark:hover:text-textMainDark max-w-24 sm:max-w-none font-sans focus:outline-none outline-none outline-transparent transition duration-300 ease-out font-sans select-none items-center relative group/button justify-center text-center items-center rounded-lg cursor-pointer active:scale-[0.97] active:duration-150 active:ease-outExpo origin-center whitespace-nowrap inline-flex text-sm h-8 aspect-[9/8]"
+                      data-state="closed"
+                    >
+                      <div
+                        class="flex items-center min-w-0 font-medium gap-1.5 justify-center"
+                      >
+                        <div
+                          class="flex shrink-0 items-center justify-center size-4"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7999999999999998"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="tabler-icon tabler-icon-cpu"
+                          >
+                            <path
+                              d="M5 5m0 1a1 1 0 0 1 1 -1h12a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-12a1 1 0 0 1 -1 -1z"
+                            ></path>
+                            <path d="M9 9h6v6h-6z"></path>
+                            <path d="M3 10h2"></path>
+                            <path d="M3 14h2"></path>
+                            <path d="M10 3v2"></path>
+                            <path d="M14 3v2"></path>
+                            <path d="M21 10h-2"></path>
+                            <path d="M21 14h-2"></path>
+                            <path d="M14 21v-2"></path>
+                            <path d="M10 21v-2"></path>
+                          </svg>
+                        </div>
+                      </div></button
+                  ></span>
+                </div>
+                <span
+                  ><span
+                    ><button
+                      type="button"
+                      class="focus-visible:bg-offsetPlus dark:focus-visible:bg-offsetPlusDark hover:bg-offsetPlus text-textOff dark:text-textOffDark hover:text-textMain dark:hover:bg-offsetPlusDark dark:hover:text-textMainDark px-[4px] font-sans focus:outline-none outline-none outline-transparent transition duration-300 ease-out font-sans select-none items-center relative group/button justify-center text-center items-center rounded-lg cursor-pointer active:scale-[0.97] active:duration-150 active:ease-outExpo origin-center whitespace-nowrap inline-flex text-sm h-8 aspect-[9/8]"
+                      data-state="closed"
+                    >
+                      <div
+                        class="flex items-center min-w-0 font-medium gap-1.5 justify-center"
+                      >
+                        <div>
+                          <div class="my-xs flex items-center">
+                            <div class="flex items-center gap-2">
+                              <div
+                                class="relative flex items-center justify-center rounded-full size-6"
+                                style="z-index: 0"
+                              >
+                                <div
+                                  class="flex size-5 items-center justify-center"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.7999999999999998"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    class="tabler-icon tabler-icon-world"
+                                  >
+                                    <path
+                                      d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"
+                                    ></path>
+                                    <path d="M3.6 9h16.8"></path>
+                                    <path d="M3.6 15h16.8"></path>
+                                    <path d="M11.5 3a17 17 0 0 0 0 18"></path>
+                                    <path d="M12.5 3a17 17 0 0 1 0 18"></path>
+                                  </svg>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div></button></span
+                ></span>
+                <div class="flex items-center">
+                  <div data-state="closed">
+                    <span
+                      ><div style="opacity: 1">
+                        <span
+                          ><button
+                            aria-label="Attach files. 3 left today"
+                            type="button"
+                            class="focus-visible:bg-offsetPlus dark:focus-visible:bg-offsetPlusDark hover:bg-offsetPlus text-textOff dark:text-textOffDark hover:text-textMain dark:hover:bg-offsetPlusDark dark:hover:text-textMainDark font-sans focus:outline-none outline-none outline-transparent transition duration-300 ease-out font-sans select-none items-center relative group/button justify-center text-center items-center rounded-lg cursor-pointer active:scale-[0.97] active:duration-150 active:ease-outExpo origin-center whitespace-nowrap inline-flex text-sm h-8 aspect-[9/8]"
+                            data-state="closed"
+                          >
+                            <div
+                              class="flex items-center min-w-0 font-medium gap-1.5 justify-center"
+                            >
+                              <div
+                                class="flex shrink-0 items-center justify-center size-4"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="1.7999999999999998"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  class="tabler-icon tabler-icon-paperclip"
+                                >
+                                  <path
+                                    d="M15 7l-6.5 6.5a1.5 1.5 0 0 0 3 3l6.5 -6.5a3 3 0 0 0 -6 -6l-6.5 6.5a4.5 4.5 0 0 0 9 9l6.5 -6.5"
+                                  ></path>
+                                </svg>
+                              </div>
+                            </div></button
+                        ></span></div></span
+                    ><input
+                      type="file"
+                      multiple=""
+                      accept=".pdf,.txt,.py,.ipynb,.js,.jsx,.html,.css,.java,.cs,.php,.c,.cpp,.cxx,.h,.hpp,.rs,.R,.Rmd,.swift,.go,.rb,.kt,.kts,.ts,.tsx,.m,.scala,.rs,.dart,.lua,.pl,.pm,.t,.sh,.bash,.zsh,.csv,.log,.ini,.config,.json,.yaml,.yml,.toml,.lua,.sql,.bat,.md,.coffee,.tex,.latex,.less,.pptx,.docx,.xlsx,.jpeg,.jpg,.jpe,.jp2,.png,.gif,.bmp,.tiff,.tif,.svg,.webp,.ico,.avif,.heic,.heif,.mp3,.wav,.aiff,.ogg,.flac,.mp4,.mpeg,.mov,.avi,.flv,.mpg,.webm,.wmv,.3gp"
+                      style="display: none"
+                    />
+                  </div>
+                </div>
+                <div class="relative">
+                  <button
+                    aria-label="Dictation"
+                    type="button"
+                    class="focus-visible:bg-offsetPlus dark:focus-visible:bg-offsetPlusDark hover:bg-offsetPlus text-textOff dark:text-textOffDark hover:text-textMain dark:hover:bg-offsetPlusDark dark:hover:text-textMainDark font-sans focus:outline-none outline-none outline-transparent transition duration-300 ease-out font-sans select-none items-center relative group/button justify-center text-center items-center rounded-lg cursor-pointer active:scale-[0.97] active:duration-150 active:ease-outExpo origin-center whitespace-nowrap inline-flex text-sm h-8 aspect-[9/8]"
+                    data-state="closed"
+                  >
+                    <div
+                      class="flex items-center min-w-0 font-medium gap-1.5 justify-center"
+                    >
+                      <div
+                        class="flex shrink-0 items-center justify-center size-4"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          stroke="none"
+                          class="tabler-icon tabler-icon-microphone-filled"
+                        >
+                          <path
+                            d="M19 9a1 1 0 0 1 1 1a8 8 0 0 1 -6.999 7.938l-.001 2.062h3a1 1 0 0 1 0 2h-8a1 1 0 0 1 0 -2h3v-2.062a8 8 0 0 1 -7 -7.938a1 1 0 1 1 2 0a6 6 0 0 0 12 0a1 1 0 0 1 1 -1m-7 -8a4 4 0 0 1 4 4v5a4 4 0 1 1 -8 0v-5a4 4 0 0 1 4 -4"
+                          ></path>
+                        </svg>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+                <div class="ml-2">
+                  <span
+                    ><div>
+                      <button
+                        style="height: 40px"
+                        aria-label="Voice mode"
+                        type="submit"
+                        class="send-btn bg-super dark:bg-superDark dark:text-backgroundDark text-white hover:opacity-80 font-sans focus:outline-none outline-none outline-transparent transition duration-300 ease-out font-sans select-none items-center relative group/button justify-center text-center items-center rounded-lg cursor-pointer active:scale-[0.97] active:duration-150 active:ease-outExpo origin-center whitespace-nowrap inline-flex text-sm h-8 aspect-[9/8]"
+                        data-state="closed"
+                      >
+                        <div
+                          class="flex items-center min-w-0 font-medium gap-1.5 justify-center"
+                        >
+                          <div
+                            class="flex shrink-0 items-center justify-center size-4"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              color="currentColor"
+                              fill="currentColor"
+                              fill-rule="evenodd"
+                            >
+                              <path
+                                d="M0 12.6663C0 13.4018 0.59792 13.9997 1.33333 13.9997C2.06875 13.9997 2.66667 13.4018 2.66667 12.6663V11.333C2.66667 10.5975 2.06875 9.99967 1.33333 9.99967C0.59792 9.99967 0 10.5975 0 11.333V12.6663ZM6.66667 5.33301C7.40213 5.33301 8 5.93087 8 6.66634V17.333C8 18.0685 7.40213 18.6663 6.66667 18.6663C5.9312 18.6663 5.33333 18.0685 5.33333 17.333V6.66634C5.33333 5.93087 5.9312 5.33301 6.66667 5.33301ZM10.6667 21.333C10.6667 22.0685 11.2645 22.6663 12 22.6663C12.7355 22.6663 13.3333 22.0685 13.3333 21.333V2.66634C13.3333 1.93093 12.7355 1.33301 12 1.33301C11.2645 1.33301 10.6667 1.93093 10.6667 2.66634V21.333ZM17.3333 5.33301C18.0688 5.33301 18.6667 5.93087 18.6667 6.66634V17.333C18.6667 18.0685 18.0688 18.6663 17.3333 18.6663C16.5979 18.6663 16 18.0685 16 17.333V6.66634C16 5.93087 16.5979 5.33301 17.3333 5.33301ZM24 11.333C24 10.5975 23.4021 9.99967 22.6667 9.99967C21.9312 9.99967 21.3333 10.5975 21.3333 11.333V12.6663C21.3333 13.4018 21.9312 13.9997 22.6667 13.9997C23.4021 13.9997 24 13.4018 24 12.6663V11.333Z"
+                              ></path>
+                            </svg>
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+        <!-- end here -->
+
+        <div class="suggestions">
+          <div
+            class="suggestion-card"
+            onclick="fillSearch('What are the latest developments in AI?')"
+          >
+            <div class="suggestion-title">Latest AI Developments</div>
+            <div class="suggestion-desc">
+              Explore recent breakthroughs and trends in artificial intelligence
+            </div>
+          </div>
+          <div
+            class="suggestion-card"
+            onclick="fillSearch('Explain quantum computing in simple terms')"
+          >
+            <div class="suggestion-title">Quantum Computing Explained</div>
+            <div class="suggestion-desc">
+              Understanding quantum computing concepts for beginners
+            </div>
+          </div>
+          <div
+            class="suggestion-card"
+            onclick="fillSearch('Best practices for web development in 2024')"
+          >
+            <div class="suggestion-title">Web Development Best Practices</div>
+            <div class="suggestion-desc">
+              Modern techniques and standards for building websites
+            </div>
+          </div>
+          <div
+            class="suggestion-card"
+            onclick="fillSearch('Climate change solutions and technologies')"
+          >
+            <div class="suggestion-title">Climate Solutions</div>
+            <div class="suggestion-desc">
+              Innovative technologies addressing environmental challenges
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+      $(document).ready(function () {
+        const $form = $("#chat-form");
+        console.log($form, ">>>>>>>>>>>>>>>>");
+        const $input = $(".user-input");
+        console.log($input, "<<<<<<<<<<<<inpuuuu");
+
+        $form.on("submit", function (e) {
+          console.log("form submit is working");
+          e.preventDefault();
+          sendMessage();
+          loader();
+        });
+
+        $input.on("keydown", function (e) {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+            loader();
+          }
+        });
+
+        function sendMessage() {
+          console.log("inside send message function");
+
+          const userText = $input.text().trim(); // Use `.text()` instead of `.val()`
+          console.log(userText, "userTexttttttttttttt");
+
+          $input[0].style.height = "auto";
+
+          if (!userText) return;
+
+          // window.location.href = "/response/";   to redirect user when form submit
+
+          // addMessage("user", userText);
+          // $input.html(""); // Clear contenteditable div
+          // addMessage("bot", "Thinking...");
+
+          // $input.prop("disabled", true);
+          // $form.find('button[type="submit"]').prop("disabled", true);
+
+          $.ajax({
+            url: "http://127.0.0.1:8000/chatbot-api/",
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ query: userText }),
+            success: function (data) {
+              if (data.status) {
+                // Redirect to a new page to view the response
+                window.location.href = "/response/";
+                $(".send-btn .loader").remove();
+              } else {
+                alert(data.error || "Unknown error occurred");
+              }
+            },
+            error: function (xhr) {
+              alert("Something went wrong!");
+            },
+          });
+        }
+
+        function addMessage(type, text) {
+          const message = $(
+            '<div style = "background: linear-gradient(135deg, orange, #0088ff); color:black;"></div>'
+          )
+            .addClass("message")
+            .addClass(type)
+            .html(formatMessage(text));
+          $("#chat-messages").append(message);
+          $("#chat-messages").scrollTop($("#chat-messages")[0].scrollHeight);
+        }
+
+        function loader() {
+          // Find the SVG inside the button and hide it
+          $(".send-btn svg").hide();
+          $(".send-btn div").hide();
+
+          // Remove any existing loader if already present
+          $(".send-btn .loader").remove();
+
+          // Append the loader
+          const loaderHtml = $(`<div class="loader"></div>`);
+          $(".send-btn").append(loaderHtml);
+        }
+
+        function formatMessage(text) {
+          return text
+            .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+            .replace(/\*(.*?)\*/g, "<em>$1</em>")
+            .replace(/`(.*?)`/g, "<code>$1</code>")
+            .replace(/\n/g, "<br/>")
+            .replace(/\n\n/g, "</p><p>")
+            .replace(/^(.*)$/, "<p>$1</p>")
+            .replace(/<p><\/p>/g, "")
+            .replace(/^\* (.*)$/gim, "<li>$1</li>")
+            .replace(/(<li>.*<\/li>)/gims, "<ul>$1</ul>")
+            .replace(/^\d+\. (.*)$/gim, "<li>$1</li>")
+            .replace(/(<ul>.*<\/ul>)/gims, (m) =>
+              m.replace(/<li>/, "<ol><li>").replace(/<\/li>$/, "</li></ol>")
+            );
+        }
+      });
+    </script>
+    <script>
+      const editableDiv = document.getElementById("editableDiv");
+
+      editableDiv.addEventListener("input", () => {
+        editableDiv.style.height = "auto"; // Reset height
+        const scrollHeight = editableDiv.scrollHeight;
+
+        if (scrollHeight <= 200) {
+          editableDiv.style.height = scrollHeight + "px";
+        } else {
+          editableDiv.style.height = "400px";
+        }
+      });
+    </script>
+    <script>
+      document
+        .getElementById("editableDiv")
+        .addEventListener("paste", function (e) {
+          e.preventDefault();
+          const text = (e.clipboardData || window.clipboardData).getData(
+            "text/plain"
+          );
+          document.execCommand("insertText", false, text);
+        });
+    </script>
+  </body>
+</html>
+<!-- 
+.loader { width: 50px; aspect-ratio: 1; border-radius: 50%; border: 8px solid;
+border-color: #000 #0000; animation: l1 1s infinite; }
+
+<div class="loader"></div> -->

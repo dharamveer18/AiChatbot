@@ -9,4 +9,6 @@ urlpatterns = [
     path('chatbot-api/', chatbot_api, name='chatbot_api'),
     path('signup/',views.signup,name='signup'),
     path('',views.login_view,name="login"),
+    path('new/',views.new,name='new'),
+    path('response/',views.response,name="response"),
 ]

@@ -18,6 +18,9 @@ from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from datetime import datetime, date
+from agno.tools.serpapi import SerpApiTools
+import markdown as md  # Add this import
+from agno.tools.bravesearch import BraveSearchTools
 
 User  = get_user_model()
 
@@ -52,9 +55,6 @@ def get_faq_answer(user_query, threshold=0.75):
         return faq_df.iloc[best_idx]["answer"]
     return None
 
-def get_current_date():
-    """Get current date for horoscope context"""
-    return datetime.now().strftime("%B %d, %Y")
 
 def chatbot(user_query):
     print('inside agent')
@@ -66,77 +66,46 @@ def chatbot(user_query):
         return faq_answer
 
     # Step 2: Enhanced LLM agent focused on astrology
-    current_date = get_current_date()
-    
     agent = Agent(
         model=Gemini(id="gemini-2.0-flash", api_key='AIzaSyA4hAH5EdfAGjVNoiF_U2lxUzNGkyVhXdw'),
         session_id="1",
         storage=storage,
-        instructions = [
-            f"""
-            You are "AstroGuide", a highly experienced professional astrologer with over 20 years of expertise in Vedic, Western, and modern psychological astrology.
-            
-            Today's date is: {current_date}
-            
-            CORE RESPONSIBILITIES:
-            - Provide daily, weekly, or monthly horoscopes for all 12 zodiac signs
-            - Interpret birth chart inputs (date, time, location of birth)
-            - Explain planetary aspects, signs, houses, retrogrades, moon phases, and transits
-            - Offer relationship compatibility readings
-            - Give guidance on career, love, health, and spiritual matters from astrological perspective
-            
-            ZODIAC SIGNS AND DATE RANGES:
-            - Aries: March 21 - April 19
-            - Taurus: April 20 - May 20
-            - Gemini: May 21 - June 20
-            - Cancer: June 21 - July 22
-            - Leo: July 23 - August 22
-            - Virgo: August 23 - September 22
-            - Libra: September 23 - October 22
-            - Scorpio: October 23 - November 21
-            - Sagittarius: November 22 - December 21
-            - Capricorn: December 22 - January 19
-            - Aquarius: January 20 - February 18
-            - Pisces: February 19 - March 20
-            
-            RESPONSE GUIDELINES:
-            - Always provide specific, detailed astrological insights
-            - Use current planetary positions and transits when giving daily horoscopes
-            - Include lucky numbers, colors, and favorable times when relevant
-            - Mention key planetary influences affecting each sign
-            - Be positive but honest about challenging aspects
-            - Format responses clearly with sections and bullet points
-            - If asked about daily horoscopes, provide insights for the current date
-            
-            IMPORTANT: You MUST provide astrological content even if you need to use general astrological knowledge. Never say you cannot provide horoscopes or astrological readings.
-            
-            If someone asks for a horoscope for a specific sign (like Cancer), immediately provide a detailed reading including:
-            - Overall energy for the day/period
-            - Love and relationships
-            - Career and finance
-            - Health and wellness
-            - Lucky elements (numbers, colors, etc.)
-            - Key planetary influences
-            
-            Always stay in character as a professional astrologer and provide meaningful astrological guidance.
-            """
+        instructions=[
+            "You are an experienced AI agent named Agno.",
+            "Always answer the user's query clearly and accurately.",
+            "If you do not know the answer, or if the user query requires up-to-date information, use the web search tool to find relevant results.",
+            "Always provide the **source URLs** of the information you retrieve via web search.",
+            "Whenever you use information from a source, **cite it clearly with a clickable link or the full URL**.",
+            "Always include **images** when relevant (e.g., people, locations, historical events).",
+            "Your response should be **detailed and well-structured**, similar to Perplexity AI responses.",
+            "You must always reference your sources — no matter what — even if you're confident in the answer.",
+            "Always cite sources with full URLs. When using web search, include clickable links at the end of the response.",
+            "Never ask user for",
+            "Always give images url of related artical for the user query, example if a user search osama bin laden then in response always give images and images url",
+            "Also when searching in web provide related images links and urls in the response"
         ],
         add_history_to_messages=True,
         num_history_runs=20,
-        tools=[
-            DuckDuckGoTools(),  # This can help fetch current astrological information
-        ],
+        tools=[DuckDuckGoTools()],
+        description="You are a news agent that helps users find the latest news.",
+        # debug_mode=True,
         markdown=True,
     )
 
-    # Enhanced query preprocessing for better astrology focus
-    enhanced_query = f"As an expert astrologer, please answer this astrology question for today ({current_date}): {user_query}"
+    # Run the agent with tool step outputs
+    result = agent.run(
+        user_query,
+        show_full_reasoning=False,
+        return_intermediate_steps=True
+    )
 
-    response = agent.run(enhanced_query, show_full_reasoning=False)
-    print(response, "resssssssssssssssssssss")
-    print(response.content, ">>>>>>>>>>>>>>>>>>>")
+    # Correct attribute access
+    response_content = result.content
 
-    return response.content
+    print(response_content, ">>>>>>>>>>>>>>>>>>>")
+    return response_content
+
+
 
 @csrf_exempt
 def chatbot_api(request):
@@ -147,11 +116,19 @@ def chatbot_api(request):
     try:
         data = json.loads(request.body)
         user_query = data.get('query')
+        
+        
+
 
         if not user_query:
             return JsonResponse({'status': False, 'error': 'No query provided'}, status=400)
 
         result = chatbot(user_query)
+        
+        html_result = md.markdown(result)
+        
+        request.session['last_user_query'] = user_query
+        request.session['last_bot_response'] = html_result
         
         # Uncomment if you want to store chat history
         # ChatHistory.objects.create(
@@ -159,7 +136,7 @@ def chatbot_api(request):
         #     response=result
         # )
 
-        return JsonResponse({'status': True, 'response': result})
+        return JsonResponse({'status': True, 'response': html_result})
     except Exception as e:
         print("Error:", e)
         return JsonResponse({'status': False, 'error': 'Internal server error'}, status=500)
@@ -211,3 +188,16 @@ def login_view(request):
             return redirect ('login')
         
     return render(request,'login.html')
+
+
+def new(request):
+    return render(request,'new.html')
+
+def response(request):
+    user_query = request.session.get('last_user_query')
+    bot_response = request.session.get('last_bot_response')
+
+    return render(request, 'response.html', {
+        'user_query': user_query,
+        'bot_response': bot_response,
+    })
