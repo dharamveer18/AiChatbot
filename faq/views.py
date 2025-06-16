@@ -21,8 +21,26 @@ from datetime import datetime, date
 from agno.tools.serpapi import SerpApiTools
 import markdown as md  # Add this import
 from agno.tools.bravesearch import BraveSearchTools
+from agno.tools import tool
+import sqlite3  # or use SQLAlchemy
 
 User  = get_user_model()
+
+@tool
+def run_sql_query(query: str) -> str:
+    print('inside this function')
+    print(query,'>>>>>>>>>>>>>>>')
+    """Executes an SQL query on the database and returns the result as text."""
+    conn = sqlite3.connect("yt.sqlite3")
+    cursor = conn.cursor()
+    try:
+        cursor.execute(query)
+        results = cursor.fetchall()
+        return str(results)
+    except Exception as e:
+        return f"Error executing SQL: {str(e)}"
+    finally:
+        conn.close()
 
 storage=SqliteStorage(table_name="chatbot_knowladge", db_file="tmp/data.db")
 
@@ -73,6 +91,7 @@ def chatbot(user_query):
         instructions=[
             "You are an experienced AI agent named Agno.",
             "Always answer the user's query clearly and accurately.",
+            "Always give long and detailed answer to the user question no matter how simple the question is",
             "If you do not know the answer, or if the user query requires up-to-date information, use the web search tool to find relevant results.",
             "Always provide the **source URLs** of the information you retrieve via web search.",
             "Whenever you use information from a source, **cite it clearly with a clickable link or the full URL**.",
@@ -82,13 +101,15 @@ def chatbot(user_query):
             "Always cite sources with full URLs. When using web search, include clickable links at the end of the response.",
             "Never ask user for",
             "Always give images url of related artical for the user query, example if a user search osama bin laden then in response always give images and images url",
-            "Also when searching in web provide related images links and urls in the response"
+            "Also when searching in web provide related images links and urls in the response",
+            "Always give image url and source artical url in response i want both url separately."
+            "you are an expert news agent who provide factual information with all the available resources.",
         ],
         add_history_to_messages=True,
         num_history_runs=20,
-        tools=[DuckDuckGoTools()],
+        tools=[DuckDuckGoTools(),run_sql_query],
         description="You are a news agent that helps users find the latest news.",
-        # debug_mode=True,
+        debug_mode=True,
         markdown=True,
     )
 

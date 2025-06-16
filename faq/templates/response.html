@@ -117,6 +117,7 @@
         padding: 25px;
         border: 1px solid #333;
         margin-bottom: 15px;
+        margin-top: 15px;
       }
 
       .profile-header {
@@ -322,6 +323,14 @@
         font-size: 1.875rem;
         line-height: 2.25rem;
       }
+      /* display none for image and source div */
+      .hidden {
+        display: none;
+      }
+
+      .active-tab {
+        display: block;
+      }
     </style>
   </head>
   <body>
@@ -392,14 +401,22 @@
             Sources</a
           >
         </div>
-        
+
         <div class="main-content">
-          <div class="profile-card">{{bot_response|safe}}</div>
+          <div class="profile-card" style="display: none">
+            {{bot_response|safe}}
+          </div>
+          <div
+            class="tab-content tab-images hidden"
+            style="display: none"
+          >this is image tab</div>
+          <div
+            class="tab-content tab-sources hidden"
+            style="display: none"
+          >this is source tab</div>
         </div>
       </div>
-      <div class="newDiv">
-
-      </div>
+      <div class="newDiv"></div>
 
       <form id="chat-form" class="chat-input">
         <div
@@ -522,6 +539,11 @@
         </div>
         <div class="response-container">
           <div class="profile-card loading">Searching...</div>
+          <div
+            class="tab-content tab-images hidden"></div>
+          <div
+            class="tab-content tab-sources hidden"></div>
+        </div>
         </div>
       </div>
     `);
@@ -546,12 +568,12 @@
               if (response.status) {
                 // Update the response in the current conversation thread
                 conversationThread
-                  .find(".response-container .newDiv")
+                  .find(".response-container .profile-card")
                   .removeClass("loading")
                   .html(response.response);
               } else {
                 conversationThread
-                  .find(".response-container .newDiv")
+                  .find(".response-container .profile-card")
                   .removeClass("loading")
                   .addClass("text-red-500")
                   .html("Error: " + response.error);
@@ -560,13 +582,37 @@
             error: function (xhr, status, error) {
               console.error("AJAX error:", error);
               conversationThread
-                .find(".response-container .newDiv")
+                .find(".response-container .profile-card")
                 .removeClass("loading")
                 .addClass("text-red-500")
                 .html("Ajex error: " + error);
             },
           });
         });
+        $(".nav-tab").click(function (e) {
+          e.preventDefault();
+
+          // Remove 'active' class from all nav tabs
+          $(".nav-tab").removeClass("active");
+
+          // Add 'active' class to clicked tab
+          $(this).addClass("active");
+
+          $(".profile-card, .tab-images, .tab-sources").hide();
+
+          // Show the appropriate content
+          const index = $(".nav-tab").index(this);
+          if (index === 0) {
+            $(".profile-card").show();
+          } else if (index === 1) {
+            $(".tab-images").show();
+          } else if (index === 2) {
+            $(".tab-sources").show();
+          }
+        });
+
+        // Optional: Show default tab (Answer) on page load
+        $(".nav-tab.active").trigger("click");
       });
     </script>
 
