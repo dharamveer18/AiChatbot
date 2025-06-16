@@ -136,7 +136,7 @@ def chatbot_api(request):
         #     response=result
         # )
 
-        return JsonResponse({'status': True, 'response': html_result})
+        return JsonResponse({'status': True, 'response': html_result, "response2":user_query})
     except Exception as e:
         print("Error:", e)
         return JsonResponse({'status': False, 'error': 'Internal server error'}, status=500)

@@ -650,7 +650,7 @@
           // $form.find('button[type="submit"]').prop("disabled", true);
 
           $.ajax({
-            url: "http://127.0.0.1:8000/chatbot-api/",
+            url: "/chatbot-api/",
             method: "POST",
             contentType: "application/json",
             data: JSON.stringify({ query: userText }),
