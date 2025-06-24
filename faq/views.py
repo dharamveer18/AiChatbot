@@ -105,7 +105,8 @@ def chatbot(user_query):
     "When giving a list, always use ul instead of ol.",
     "Always give image URLs that are public and accessible for all users.",
     "Do not include images that are likely to be blocked, require authentication, or are placeholders.",
-    "Before including any image, check that the URL is not broken and the image loads successfully."
+    "Before including any image, check that the URL is not broken and the image loads successfully.",
+    "You have to always search user query to the web even if you you have response always search user query on web and extract relevent image and artical"
 ]
 
     agent = Agent(
@@ -127,7 +128,8 @@ def chatbot(user_query):
     result = agent.run(
         user_query,
         show_full_reasoning=False,
-        return_intermediate_steps=True
+        return_intermediate_steps=True,
+        Stream=True
     )
 
     # Correct attribute access

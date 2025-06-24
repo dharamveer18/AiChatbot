@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Streaming Chatbot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      background-color: #1e1e1e;
+      color: #ffffff;
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 20px;
+      background-color: #2a2a2a;
+    }
+    textarea {
+      width: 100%;
+      min-height: 60px;
+      border-radius: 5px;
+      padding: 10px;
+      font-size: 16px;
+      background-color: #333;
+      color: #fff;
+      border: none;
+      resize: vertical;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background-color: #0a9bc9;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .output {
+      margin-top: 20px;
+      white-space: pre-wrap;
+      background: #1b1b1b;
+      border-radius: 8px;
+      padding: 15px;
+      min-height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Chat with Agno</h1>
+    <form id="chat-form">
+      <textarea id="user-input" placeholder="Ask anything..."></textarea>
+      <button type="submit">Send</button>
+    </form>
+    <div id="output" class="output"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('chat-form');
+    const textarea = document.getElementById('user-input');
+    const output = document.getElementById('output');
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const query = textarea.value.trim();
+      if (!query) return;
+
+      textarea.value = '';
+      output.innerHTML = '<em>Streaming response...</em>';
+
+      fetch('/chatbot-api/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: query }),
+      })
+        .then(response => {
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          output.innerHTML = '';
+          let fullResponse = '';
+
+          function read() {
+            reader.read().then(({ done, value }) => {
+              if (done) return;
+
+              const chunk = decoder.decode(value, { stream: true });
+              fullResponse += chunk;
+              output.textContent += chunk; // Append live output
+              read(); // Continue reading
+            });
+          }
+
+          read();
+        })
+        .catch(error => {
+          output.innerHTML = `<span style="color:red;">Error: ${error.message}</span>`;
+        });
+    });
+  </script>
+</body>
+</html>
