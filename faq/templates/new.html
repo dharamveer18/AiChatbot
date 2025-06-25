@@ -334,6 +334,7 @@
         <!-- form here -->
         <div id="chat-messages" class="chat-messages"></div>
         <form id="chat-form" class="chat-input">
+          {% csrf_token %}
           <div
             style="border: none"
             class="bg-background w-full outline-none focus:outline-none focus:ring-borderMain font-sans flex items-center text-textMain placeholder-textOff border focus:ring-1 rounded-2xl dark:bg-offsetDark dark:text-textMainDark dark:placeholder-textOffDark selection:bg-superDuper selection:text-textMain duration-75 transition-all border-borderMain dark:border-textMain/10 shadow-sm dark:shadow-md shadow-textMain/5 dark:shadow-black/10 px-0 pt-3 pb-3 gap-y-md grid items-center"
@@ -528,7 +529,7 @@
                   <span
                     ><div>
                       <button
-                        style="height: 40px; color: black;"
+                        style="height: 40px; color: black"
                         aria-label="Voice mode"
                         type="submit"
                         class="send-btn bg-super dark:bg-superDark dark:text-backgroundDark text-white hover:opacity-80 font-sans focus:outline-none outline-none outline-transparent transition duration-300 ease-out font-sans select-none items-center relative group/button justify-center text-center items-center rounded-lg cursor-pointer active:scale-[0.97] active:duration-150 active:ease-outExpo origin-center whitespace-nowrap inline-flex text-sm h-8 aspect-[9/8]"
@@ -630,43 +631,55 @@
           }
         });
 
+        function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+            for (let cookie of cookies) {
+              cookie = cookie.trim();
+              if (cookie.startsWith(name + "=")) {
+                cookieValue = decodeURIComponent(
+                  cookie.substring(name.length + 1)
+                );
+                break;
+              }
+            }
+          }
+          return cookieValue;
+        }
+
         function sendMessage() {
-          console.log("inside send message function");
-
-          const userText = $input.text().trim(); // Use `.text()` instead of `.val()`
-          console.log(userText, "userTexttttttttttttt");
-
-          $input[0].style.height = "auto";
+          const userText = $input.text().trim();
 
           if (!userText) return;
 
-          // window.location.href = "/response/";   to redirect user when form submit
+          loader(); // show loader
 
-          // addMessage("user", userText);
-          // $input.html(""); // Clear contenteditable div
-          // addMessage("bot", "Thinking...");
+          const csrftoken = getCookie("csrftoken");
 
-          // $input.prop("disabled", true);
-          // $form.find('button[type="submit"]').prop("disabled", true);
-
-          $.ajax({
-            url: "/chatbot-api/",
+          fetch("http://127.0.0.1:8000/chatbot2/", {
             method: "POST",
-            contentType: "application/json",
-            data: JSON.stringify({ query: userText }),
-            success: function (data) {
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": csrftoken,
+            },
+
+            body: JSON.stringify({ query: userText }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              $(".send-btn .loader").remove();
               if (data.status) {
-                // Redirect to a new page to view the response
+                // Redirect to response page
                 window.location.href = "/response/";
-                $(".send-btn .loader").remove();
               } else {
                 alert(data.error || "Unknown error occurred");
               }
-            },
-            error: function (xhr) {
+            })
+            .catch(() => {
+              $(".send-btn .loader").remove();
               alert("Something went wrong!");
-            },
-          });
+            });
         }
 
         function addMessage(type, text) {

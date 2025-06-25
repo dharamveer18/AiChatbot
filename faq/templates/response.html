@@ -338,12 +338,12 @@
       </form>
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+   <script>
       $(document).ready(function () {
         // Apply see more logic to the static header (initial load)
         initSeeMoreToggle($(".header"));
         handleTabClicks($(".header"));
-
         // Form submit handler
         $("#chat-form").on("submit", function (e) {
           e.preventDefault();
@@ -443,34 +443,41 @@
             500
           );
 
-          $.ajax({
-            type: "POST",
-            url: "/chatbot-api/",
-            contentType: "application/json",
-            data: JSON.stringify({ query: query }),
-            success: function (response) {
-              const responseContainer = conversationThread.find(
-                ".response-container .profile-card"
-              );
-              responseContainer.removeClass("loading");
+          fetch("/chatbot-api/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ query: query }),
+          })
+            .then((response) => {
+              const reader = response.body.getReader();
+              const decoder = new TextDecoder();
+              const responsediv = conversationThread.find(".profile-card");
+              responsediv.empty(); // clear "Searching..."
 
-              if (response.status) {
-                responseContainer.html(response.response);
-              } else {
-                responseContainer
-                  .addClass("text-red-500")
-                  .html("Error: " + response.error);
+              function read() {
+                reader.read().then(({ done, value }) => {
+                  if (done) return;
+
+                  const chunk = decoder.decode(value, { stream: true });
+                  console.log("Received chunk:", chunk); // Debug log
+
+                  responsediv.append(marked.parse(chunk)); // Append chunk safely
+                  read(); // Keep reading next chunk
+                });
               }
-            },
-            error: function (xhr, status, error) {
-              console.error("AJAX error:", error);
+
+              read();
+            })
+            .catch((error) => {
+              console.error("Streaming error:", error);
               conversationThread
-                .find(".response-container .profile-card")
-                .removeClass("loading")
-                .addClass("text-red-500")
-                .html("Ajax error: " + error);
-            },
-          });
+                .find(".profile-card")
+                .html(
+                  `<span style="color:red;">Error: ${error.message}</span>`
+                );
+            });
         });
 
         // Tab click handler
@@ -562,6 +569,7 @@
         });
       });
     </script>
+
 
     <!-- <script>
       $(document).ready(function () {

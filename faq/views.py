@@ -1,6 +1,6 @@
 import os
 import json
-from django.http import JsonResponse
+from django.http import JsonResponse,StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render,redirect
 import requests
@@ -18,7 +18,7 @@ from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from datetime import datetime, date
-import markdown as md  # Add this import
+import markdown 
 from agno.tools import tool
 import sqlite3  # or use SQLAlchemy
 
@@ -106,20 +106,22 @@ def chatbot(user_query):
     "Always give image URLs that are public and accessible for all users.",
     "Do not include images that are likely to be blocked, require authentication, or are placeholders.",
     "Before including any image, check that the URL is not broken and the image loads successfully.",
-    "You have to always search user query to the web even if you you have response always search user query on web and extract relevent image and artical"
+    "You have to always search user query to the web even if you you have response always search user query on web and extract relevent image and artical",
+    "always give full response don't until the full response come"
 ]
+
 
     agent = Agent(
         model=Gemini(id="gemini-2.0-flash", api_key='AIzaSyA4hAH5EdfAGjVNoiF_U2lxUzNGkyVhXdw'),
-        session_id="1",
-        storage=storage,
+        # session_id="1",
+        # storage=storage,
         instructions=refined_prompt,
-        add_history_to_messages=True,
-        num_history_runs=20,
+        # add_history_to_messages=True,
+        # num_history_runs=20,
         tools=[DuckDuckGoTools(), run_sql_query, YFinanceTools()],
         description="You are a news agent that helps users find the latest news.",
         debug_mode=True,
-        markdown=True,
+        # markdown=True,
     )
 
 
@@ -129,14 +131,18 @@ def chatbot(user_query):
         user_query,
         show_full_reasoning=False,
         return_intermediate_steps=True,
-        Stream=True
+        stream=True
     )
+    print(result,'result from ai agent')
 
     # Correct attribute access
-    response_content = result.content
+    for chunk in result:
+        content = getattr(chunk, "content", "")
+        if isinstance(content, str):
+            print("Chunk event:", getattr(chunk, "event", "unknown"), "| Content:", repr(content))
+            yield content
 
-    print(response_content, ">>>>>>>>>>>>>>>>>>>")
-    return response_content
+
 
 
 
@@ -149,78 +155,89 @@ def chatbot_api(request):
     try:
         data = json.loads(request.body)
         user_query = data.get('query')
-        
-        
-
 
         if not user_query:
             return JsonResponse({'status': False, 'error': 'No query provided'}, status=400)
 
         result = chatbot(user_query)
+        print(result,'result')
         
-        html_result = md.markdown(result)
-        
-        request.session['last_user_query'] = user_query
-        request.session['last_bot_response'] = html_result
-        
-        # Uncomment if you want to store chat history
-        # ChatHistory.objects.create(
-        #     query=user_query,
-        #     response=result
-        # )
+        def formatted_stream():
+            html_result = ""
+            for chunk in result:  # result yields markdown chunks
+                # convert markdown chunk to html
+                html_chunk = markdown.markdown(chunk)
+                html_result += html_chunk
+                yield html_chunk
 
-        return JsonResponse({'status': True, 'response': html_result, "response2":user_query})
+            request.session['last_user_query'] = user_query
+            request.session['last_bot_response'] = html_result
+
+
+        return StreamingHttpResponse(formatted_stream(), content_type='text/html')
+
+        # html_result = result
+        
+        # request.session['last_user_query'] = user_query
+        # request.session['last_bot_response'] = html_result
+        
+        # # Uncomment if you want to store chat history
+        # # ChatHistory.objects.create(
+        # #     query=user_query,
+        # #     response=result
+        # # )
+
+        # return JsonResponse({'status': True, 'response': html_result, "response2":user_query})
     except Exception as e:
         print("Error:", e)
         return JsonResponse({'status': False, 'error': 'Internal server error'}, status=500)
 
-@login_required
 def home(request):
     return render(request, 'chatbot.html')
 
-@csrf_exempt
-def signup(request):
-    if request.method == "POST":
-        name = request.POST.get('name')
-        print(name,'????????????')
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        print(password,'passsssssssss')
+# @csrf_exempt
+# def signup(request):
+#     if request.method == "POST":
+#         name = request.POST.get('name')
+#         print(name,'????????????')
+#         email = request.POST.get('email')
+#         password = request.POST.get('password')
+#         print(password,'passsssssssss')
         
-        if User.objects.filter(email=email).exists():
-            messages.info(request, "Username taken")
-            return redirect('/sign/')
+#         if User.objects.filter(email=email).exists():
+#             messages.info(request, "Username taken")
+#             return redirect('/sign/')
         
-        user = User.objects.create_user(
-            username=email,
-            name = name,
-            email = email,
-            password=password
-        )
+#         user = User.objects.create_user(
+#             username=email,
+#             name = name,
+#             email = email,
+#             password=password
+#         )
         
-        messages.info(request, "Account created successfully!")
-        return redirect('login')
+#         messages.info(request, "Account created successfully!")
+#         return redirect('login')
     
-    return render(request,'signup.html')
+#     return render(request,'signup.html')
 
-@csrf_exempt
-def login_view(request):
-    if request.method == "POST":
-        email = request.POST.get('email')
-        print(email,'eeeeeeeeeeeee')
-        password = request.POST.get('password')
-        print(password,'pppppppppppppppppppppp')
-        user = authenticate(username=email,password=password)
-        print(user,'userrrrrrrrrr')
+# @csrf_exempt
+# def login_view(request):
+#     if request.method == "POST":
+#         email = request.POST.get('email')
+#         print(email,'eeeeeeeeeeeee')
+#         password = request.POST.get('password')
+#         print(password,'pppppppppppppppppppppp')
+#         user = authenticate(username=email,password=password)
+#         print(user,'userrrrrrrrrr')
         
-        if user:
-            login(request,user)
-            return redirect('home')
-        else:
-            messages.info(request,"Invalid email or password")
-            return redirect ('login')
+#         if user:
+#             login(request,user)
+#             return redirect('home')
+#         else:
+#             messages.info(request,"Invalid email or password")
+#             return redirect ('login')
         
-    return render(request,'login.html')
+#     return render(request,'login.html')
 
 
 def new(request):
@@ -228,9 +245,38 @@ def new(request):
 
 def response(request):
     user_query = request.session.get('last_user_query')
+    print(user_query,'got this user query from session')
     bot_response = request.session.get('last_bot_response')
+    print(bot_response,'got this bot response from session')
 
     return render(request, 'response.html', {
         'user_query': user_query,
         'bot_response': bot_response,
     })
+
+@csrf_exempt
+def chatbotAPI(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': False, 'error': 'Invalid request method'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        user_query = data.get('query')
+
+        if not user_query:
+            return JsonResponse({'status': False, 'error': 'No query provided'}, status=400)
+
+        result = chatbot(user_query)  # result yields markdown chunks
+
+        html_result = ""
+        for chunk in result:
+            html_chunk = markdown.markdown(chunk)
+            html_result += html_chunk
+
+        # Save user query and bot response in session for next page
+        request.session['last_user_query'] = user_query
+        request.session['last_bot_response'] = html_result
+
+        return JsonResponse({'status': True})
+    except Exception as e:
+        return JsonResponse({'status': False, 'error': str(e)}, status=500)
