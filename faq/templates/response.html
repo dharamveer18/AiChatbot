@@ -189,20 +189,28 @@
       }
 
       textarea::-webkit-scrollbar {
-      width: 10px;
-      background: transparent;
-      
+        width: 10px;
+        background: transparent;
       }
 
       textarea::-webkit-scrollbar-thumb {
-      box-shadow: inset 0 0 5px grey;
-      border-radius: 5px;
-      cursor: pointer;
+        box-shadow: inset 0 0 5px grey;
+        border-radius: 5px;
+        cursor: pointer;
       }
       textarea::-webkit-scrollbar-thumb {
-      background: grey;
-      border-radius: 5px;
-    }
+        background: grey;
+        border-radius: 5px;
+      }
+      /* for image in response */
+      .profile-card img {
+        max-width: 100%;
+        margin: 10px 0;
+        border-radius: 10px;
+        box-shadow: 0 0 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+      }
+
     </style>
   </head>
   <body>
@@ -302,13 +310,14 @@
           style="display: flex; align-items: end; gap: 5px"
         >
           <textarea
-  class="search-input w-full rounded-md text-sm px-3 py-2 leading-5 resize-none overflow-y-auto min-h-[40px] max-h-[290px]"
-  rows="3"
-  placeholder="Ask anything..."
-></textarea>
+            class="search-input w-full rounded-md text-sm px-3 py-2 leading-5 overflow-y-auto min-h-[40px] max-h-[290px]"
+            rows="3"
+            placeholder="Ask anything..."
+            style="height: 70px;"
+          ></textarea>
 
           <button
-            style="height: 47px; background: #0a9bc9;" 
+            style="height: 47px; background: #0a9bc9"
             aria-label="Voice mode"
             type="submit"
             class="send-btn bg-super dark:bg-superDark dark:text-backgroundDark text-white hover:opacity-80 font-sans focus:outline-none outline-none outline-transparent transition duration-300 ease-out font-sans select-none items-center relative group/button justify-center text-center items-center rounded-lg cursor-pointer active:scale-[0.97] active:duration-150 active:ease-outExpo origin-center whitespace-nowrap inline-flex text-sm h-8 aspect-[9/8]"
@@ -338,8 +347,8 @@
       </form>
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-   <script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
       $(document).ready(function () {
         // Apply see more logic to the static header (initial load)
         initSeeMoreToggle($(".header"));
@@ -356,7 +365,7 @@
           const safeQuery = escapeHtml(query);
 
           const conversationThread = $(`
-        <div class="conversation-thread" style="margin-bottom: 2rem;">
+        <div class="conversation-thread" style="margin-bottom: 100px;">
           <div class="question-container">
             <h1 class="user-query max-h-[144px] overflow-hidden change group/query relative whitespace-pre-line break-words [word-break:break-word] font-display text-pretty text-xl lg:text-3xl font-[475] dark:font-[450] text-textMain dark:text-textMainDark selection:bg-super/50 selection:text-textMain dark:selection:bg-superDuper/10 dark:selection:text-superDark">
               ${safeQuery}
@@ -444,40 +453,49 @@
           );
 
           fetch("/chatbot-api/", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ query: query }),
-          })
-            .then((response) => {
-              const reader = response.body.getReader();
-              const decoder = new TextDecoder();
-              const responsediv = conversationThread.find(".profile-card");
-              responsediv.empty(); // clear "Searching..."
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ query: query }),
+})
+  .then((response) => {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    const responsediv = conversationThread.find(".profile-card");
+    responsediv.empty(); // clear "Searching..."
 
-              function read() {
-                reader.read().then(({ done, value }) => {
-                  if (done) return;
+    let markdownContent = "";  // 👉 Accumulate full markdown here
 
-                  const chunk = decoder.decode(value, { stream: true });
-                  console.log("Received chunk:", chunk); // Debug log
+    function read() {
+      reader.read().then(({ done, value }) => {
+        if (done) {
+          // ✅ Convert full markdown to HTML when streaming ends
+          const html = marked.parse(markdownContent); // requires marked.js
+          responsediv.html(html);
+          return;
+        }
 
-                  responsediv.append(marked.parse(chunk)); // Append chunk safely
-                  read(); // Keep reading next chunk
-                });
-              }
+        // Add new chunk to markdown content
+        const chunk = decoder.decode(value, { stream: true });
+        markdownContent += chunk;
 
-              read();
-            })
-            .catch((error) => {
-              console.error("Streaming error:", error);
-              conversationThread
-                .find(".profile-card")
-                .html(
-                  `<span style="color:red;">Error: ${error.message}</span>`
-                );
-            });
+        // Optional live preview while streaming (just text)
+        responsediv.text(markdownContent);
+
+        read(); // Continue reading the next chunk
+      });
+    }
+
+    read();
+  })
+  .catch((error) => {
+    console.error("Streaming error:", error);
+    conversationThread
+      .find(".profile-card")
+      .html(`<span style="color:red;">Error: ${error.message}</span>`);
+  });
+
         });
 
         // Tab click handler
@@ -560,200 +578,24 @@
     </script>
 
     <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        const textarea = document.querySelector(".search-input");
+  document.addEventListener("DOMContentLoaded", function () {
+    const textarea = document.querySelector(".search-input");
 
-        textarea.addEventListener("input", () => {
-          textarea.style.height = "auto"; // Reset height
-          textarea.style.height = `${textarea.scrollHeight}px`; // Set new height
-        });
-      });
-    </script>
+    // Auto-resize textarea
+    textarea.addEventListener("input", () => {
+      textarea.style.height = "auto";
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    });
 
-
-    <!-- <script>
-      $(document).ready(function () {
-        // Handle tab clicks for the initial conversation (if exists)
-        initSeeMoreToggle($(".header"));
-        handleTabClicks($(".header"));
-
-        $("#chat-form").on("submit", function (e) {
-          e.preventDefault(); // Prevent the form from reloading the page
-
-          var query = $(".search-input").val().trim();
-          if (!query) return;
-
-          // Clear the input
-          $(".search-input").val("");
-
-          // Create a new conversation thread container
-          const conversationThread = $(`
-      <div class="conversation-thread" style="margin-bottom: 2rem;">
-        <div class="question-container">
-          <h1 class="user-query change group/query relative whitespace-pre-line break-words [word-break:break-word] max-h-[144px] font-display text-pretty text-xl lg:text-3xl font-[475] dark:font-[450] text-textMain dark:text-textMainDark selection:bg-super/50 selection:text-textMain dark:selection:bg-superDuper/10 dark:selection:text-superDark overflow-hidden">
-            ${query}
-          </h1>
-          <button class="toggle-button mt-2 text-sm text-blue-400 hover:underline ">See more</button>
-
-          <div class="nav-tabs">
-            <a href="#" class="nav-tab active">
-              <svg style="width: 15px; height: 17px" width="60" height="74" viewBox="0 0 60 74" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-full w-auto shrink-0 transform-gpu">
-                <path d="M29.6848 25.4603L48.3092 41.4828V65.1065L29.6848 49.0293M29.6848 25.4603L10.5359 40.7925L10.5892 64.669L29.6316 49.0293M29.6848 25.4603L3.4071 24.8588V48.5542L10.0911 48.6959M29.6848 25.4603L55.9884 25.7611V49.5761L48.6649 49.4467M29.6848 25.4603L11.3722 9.03792L11.2884 24.5988M29.6848 25.4603L48.7956 9.74877V25.4474M29.6848 25.4603L29.63 2.75943M29.6848 25.4603V49.1113M29.63 71.6481L29.6848 49.0839" stroke="currentColor" stroke-width="4.7" stroke-linecap="round" stroke-linejoin="round"></path>
-              </svg>Answer
-            </a>
-            <a href="#" class="nav-tab">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7142857142857142" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-photo text-text-100 hidden duration-100 sm:block group-hover:opacity-100 opacity-80">
-                <path d="M15 8h.01"></path>
-                <path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z"></path>
-                <path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5"></path>
-                <path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3"></path>
-              </svg>Images
-            </a>
-            <a href="#" class="nav-tab">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" color="currentColor" class="text-text-100 hidden duration-100 sm:block group-hover:opacity-100 opacity-80" fill="currentColor" fill-rule="evenodd">
-                <path d="M12.2401 8.96004C10.6561 8.96004 9.36011 7.66404 9.36011 6.08004C9.36011 4.49604 10.6561 3.20004 12.2401 3.20004C13.8241 3.20004 15.1201 4.49604 15.1201 6.08004C15.1201 7.66404 13.8241 8.96004 12.2401 8.96004ZM12.2401 5.12004C11.7121 5.12004 11.2801 5.55204 11.2801 6.08004C11.2801 6.60804 11.7121 7.04004 12.2401 7.04004C12.7681 7.04004 13.2001 6.60804 13.2001 6.08004C13.2001 5.55204 12.7681 5.12004 12.2401 5.12004Z M18 14.7201C16.416 14.7201 15.12 13.4241 15.12 11.8401C15.12 10.2561 16.416 8.96011 18 8.96011C19.584 8.96011 20.88 10.2561 20.88 11.8401C20.88 13.4241 19.584 14.7201 18 14.7201ZM18 10.8801C17.472 10.8801 17.04 11.3121 17.04 11.8401C17.04 12.3681 17.472 12.8001 18 12.8001C18.528 12.8001 18.96 12.3681 18.96 11.8401C18.96 11.3121 18.528 10.8801 18 10.8801Z M6.48004 14.7201C4.89604 14.7201 3.60004 13.4241 3.60004 11.8401C3.60004 10.2561 4.89604 8.96011 6.48004 8.96011C8.06404 8.96011 9.36004 10.2561 9.36004 11.8401C9.36004 13.4241 8.06404 14.7201 6.48004 14.7201ZM6.48004 10.8801C5.95204 10.8801 5.52004 11.3121 5.52004 11.8401C5.52004 12.3681 5.95204 12.8001 6.48004 12.8001C7.00804 12.8001 7.44004 12.3681 7.44004 11.8401C7.44004 11.3121 7.00804 10.8801 6.48004 10.8801Z M12.2401 20.48C10.6561 20.48 9.36011 19.184 9.36011 17.6C9.36011 16.016 10.6561 14.72 12.2401 14.72C13.8241 14.72 15.1201 16.016 15.1201 17.6C15.1201 19.184 13.8241 20.48 12.2401 20.48ZM12.2401 16.64C11.7121 16.64 11.2801 17.072 11.2801 17.6C11.2801 18.128 11.7121 18.56 12.2401 18.56C12.7681 18.56 13.2001 18.128 13.2001 17.6C13.2001 17.072 12.7681 16.64 12.2401 16.64Z"></path>
-              </svg>Sources
-            </a>
-          </div>
-        </div>
-        <div class="response-container">
-          <div class="profile-card loading">Searching...</div>
-          <div class="tab-content tab-images hidden" style="display: none;">${query}</div>
-          <div class="tab-content tab-sources hidden" style="display: none;">${query}</div>
-        </div>
-      </div>
-    `);
-
-          // Append the new conversation thread to main-content
-          $(".newDiv").append(conversationThread);
-          initSeeMoreToggle(conversationThread);
-          // Set up tab functionality for this specific conversation thread
-          handleTabClicks(conversationThread);
-
-          // Scroll to the new question
-          $("html, body").animate(
-            {
-              scrollTop: conversationThread.offset().top - 100,
-            },
-            500
-          );
-
-          $.ajax({
-            type: "POST",
-            url: "/chatbot-api/",
-            contentType: "application/json",
-            data: JSON.stringify({ query: query }),
-            success: function (response) {
-              if (response.status) {
-                // Update the response in the current conversation thread
-                conversationThread
-                  .find(".response-container .profile-card")
-                  .removeClass("loading")
-                  .html(response.response);
-              } else {
-                conversationThread
-                  .find(".response-container .profile-card")
-                  .removeClass("loading")
-                  .addClass("text-red-500")
-                  .html("Error: " + response.error);
-              }
-            },
-            error: function (xhr, status, error) {
-              console.error("AJAX error:", error);
-              conversationThread
-                .find(".response-container .profile-card")
-                .removeClass("loading")
-                .addClass("text-red-500")
-                .html("Ajax error: " + error);
-            },
-          });
-        });
-
-        // Function to handle tab clicks for a specific conversation thread
-        function handleTabClicks(container) {
-          container
-            .find(".nav-tab")
-            .off("click")
-            .on("click", function (e) {
-              e.preventDefault();
-
-              const clickedTab = $(this);
-              const conversationContainer = clickedTab.closest(
-                ".conversation-thread, .header"
-              );
-
-              // Remove 'active' class from all nav tabs in this conversation
-              conversationContainer.find(".nav-tab").removeClass("active");
-
-              // Add 'active' class to clicked tab
-              clickedTab.addClass("active");
-
-              // Hide all content in this conversation
-              conversationContainer
-                .find(".profile-card, .tab-images, .tab-sources")
-                .hide();
-
-              // Show the appropriate content based on tab index
-              const tabIndex = conversationContainer
-                .find(".nav-tab")
-                .index(clickedTab);
-
-              if (tabIndex === 0) {
-                // Answer tab
-                conversationContainer.find(".profile-card").show();
-              } else if (tabIndex === 1) {
-                // Images tab
-                conversationContainer.find(".tab-images").show();
-              } else if (tabIndex === 2) {
-                // Sources tab
-                conversationContainer.find(".tab-sources").show();
-              }
-            });
-
-          // Show the default active tab for this conversation
-          container.find(".nav-tab.active").trigger("click");
-        }
-      });
-    </script>
-
-    <script>
-      // Search input focus effect
-      const searchInput = document.querySelector(".search-input");
-      searchInput.addEventListener("focus", function () {
-        this.style.background = "#333";
-      });
-
-      searchInput.addEventListener("blur", function () {
-        this.style.background = "#2a2a2a";
-      });
-    </script>
-    <script>
-  function initSeeMoreToggle(container) {
-  const queryElement = container.find(".user-query")[0];
-  const toggleButton = container.find(".toggle-button")[0];
-
-  if (!queryElement || !toggleButton) return;
-
-  // Delay to ensure the element is rendered and sized
-  setTimeout(() => {
-    if (queryElement.scrollHeight > queryElement.clientHeight) {
-      toggleButton.style.display = "inline-block";
-    } else {
-      toggleButton.style.display = "none";
-    }
-
-    toggleButton.addEventListener("click", () => {
-      const isCollapsed = queryElement.classList.contains("max-h-[144px]");
-      if (isCollapsed) {
-        queryElement.classList.remove("max-h-[144px]", "overflow-hidden");
-        toggleButton.textContent = "Show less";
-      } else {
-        queryElement.classList.add("max-h-[144px]", "overflow-hidden");
-        toggleButton.textContent = "See more";
+    // Submit form on Enter (but not Shift+Enter)
+    textarea.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault(); // Prevent newline
+        document.getElementById("chat-form").requestSubmit(); // Submit form
       }
     });
-  }, 30); // 30ms is typically enough for layout to settle
-}
-</script> -->
+  });
+</script>
+
   </body>
 </html>

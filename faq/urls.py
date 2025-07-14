@@ -10,6 +10,6 @@ urlpatterns = [
     path('chatbot2/', chatbotAPI,name='chatbot'),
     # path('signup/',views.signup,name='signup'),
     # path('',views.login_view,name="login"),
-    path('new/',views.new,name='new'),
+    path('',views.new,name='new'),
     path('response/',views.response,name="response"),
 ]
