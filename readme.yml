@@ -1,0 +1,6 @@
+This is a aichatbot i created using agno ai agent and there can be some problem in installing requirements, i apologize for that and please only download required module and check for version conflict.
+First after cloning the project i want you to create a venv(virtual env) and install the packages there. command to install virtual env -> python3 -m venv (env_name).
+After creating the virtual env activate it, it depend what os you are using for linux -> source/env_name/bin/activate.
+After activating virtual env you should see the name of the env in terminal (env_name) like this and ater that run the command -> pip install -r req.txt. This will install all the module needed to run this project on your virtual env.
+After that just do python manage.py makemigrations and python manage.py migrate and create a superuser with python manage.py createsuperuser.
+And you are good to go.
